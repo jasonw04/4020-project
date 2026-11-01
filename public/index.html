@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#183b34"><title>UDPA · Your degree, in view</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<aside class="sidebar">
+  <a class="brand" href="#overview"><span class="brand-mark">u<span>↗</span></span>udpa<span class="brand-dot">.</span></a>
+  <p class="sidebar-label">YOUR ACADEMIC SPACE</p>
+  <nav aria-label="Main navigation">
+    <a href="#overview" data-nav="overview"><span>◫</span>Overview</a>
+    <a href="#requirements" data-nav="requirements"><span>◎</span>Degree requirements</a>
+    <a href="#courses" data-nav="courses"><span>▦</span>Course explorer</a>
+    <a href="#planner" data-nav="planner"><span>▤</span>Semester planner<span class="nav-count" id="plan-count">0</span></a>
+    <a href="#assistant" data-nav="assistant"><span>✧</span>Planning assistant</a>
+  </nav>
+  <div class="sidebar-bottom"><div class="help-card"><span>↗</span><strong>A little clarity goes a long way.</strong><p>Build a plan that works for you, one semester at a time.</p><a href="#assistant">Let’s make a plan →</a></div><div class="profile"><span class="avatar">JD</span><div><strong>Jordan Davis</strong><small>Demo student · Year 3</small></div><span class="profile-status" title="Demo profile">●</span></div></div>
+</aside>
+<div class="workspace"><header class="topbar"><div><span class="breadcrumb">My workspace</span><span class="slash">/</span><span id="page-crumb">Overview</span></div><div class="topbar-right"><span class="demo-badge" id="mode-badge">● Demo workspace</span><span class="term-label">Fall 2026</span></div></header>
+<main id="main" tabindex="-1"></main><footer>UDPA · University Degree Progress Assistant <span>Plan with confidence. Confirm requirements with your academic advisor.</span></footer></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="confirm-dialog"><form method="dialog"><span class="eyebrow">SIMULATED ACTION</span><h2 id="confirm-title">Confirm action</h2><p id="confirm-description"></p><div class="dialog-actions"><button value="cancel" class="button secondary">Cancel</button><button value="confirm" class="button">Confirm</button></div></form></dialog>
+<script type="module" src="app.js"></script>
+</body></html>
