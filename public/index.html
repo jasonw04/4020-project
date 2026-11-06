@@ -19,5 +19,11 @@
 <main id="main" tabindex="-1"></main><footer>UDPA · University Degree Progress Assistant <span>Plan with confidence. Confirm requirements with your academic advisor.</span></footer></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="confirm-dialog"><form method="dialog"><span class="eyebrow">SIMULATED ACTION</span><h2 id="confirm-title">Confirm action</h2><p id="confirm-description"></p><div class="dialog-actions"><button value="cancel" class="button secondary">Cancel</button><button value="confirm" class="button">Confirm</button></div></form></dialog>
+<script>
+  window.UDPA_CONFIG = {
+    mode: "api",
+    baseUrl: "/api"
+  };
+</script>
 <script type="module" src="app.js"></script>
 </body></html>
