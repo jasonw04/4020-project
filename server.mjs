@@ -1,14 +1,87 @@
-import http from 'node:http';
-import {readFile} from 'node:fs/promises';
-import path from 'node:path';
-const root = path.resolve('public');
-const types = {'.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.svg':'image/svg+xml'};
-http.createServer(async (req,res) => {
-  try {
-    const pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
-    const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
-    if (!file.startsWith(root + path.sep)) {res.writeHead(403).end(); return;}
-    const body = await readFile(file);
-    res.writeHead(200, {'Content-Type':types[path.extname(file)] || 'application/octet-stream','Cache-Control':'no-store'}).end(body);
-  } catch {res.writeHead(404).end('Not found');}
-}).listen(process.env.PORT || 3000, () => console.log('UDPA: http://localhost:' + (process.env.PORT || 3000)));
+import { recommend } from "./public/domain.js";
+import express from "express";
+import {
+  student,
+  completed,
+  requirements,
+  courses
+} from "./public/data.js";
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+let savedPlan = {
+  term: "Winter 2027",
+  codes: []
+};
+
+let enrolments = {};
+
+app.use(express.json());
+
+app.get("/api/workspace", (req, res) => {
+  res.json({
+    student,
+    completed,
+    requirements,
+    courses,
+    plan: savedPlan,
+    enrolments
+  });
+});
+
+
+app.get("/api/student", (req, res) => {
+  res.json(student);
+});
+
+app.put("/api/plans", (req, res) => {
+  savedPlan = req.body;
+  res.json({
+    message: "Plan saved",
+    plan: savedPlan
+  });
+});
+
+app.post("/api/enrolments", (req, res) => {
+  const { code, action } = req.body;
+
+  if (!code || !action) {
+    return res.status(400).json({
+      message: "Course code and action are required."
+    });
+  }
+
+  if (!["enrolled", "waitlisted"].includes(action)) {
+    return res.status(400).json({
+      message: "Invalid enrolment action."
+    });
+  }
+
+  enrolments[code] = action;
+
+  res.status(201).json({
+    message: `${code} ${action}`,
+    enrolments
+  });
+});
+
+app.post("/api/assistant/plans", (req, res) => {
+  const preferences = req.body;
+
+  const codes = recommend(
+    courses,
+    completed,
+    preferences
+  );
+
+  res.json({
+    codes
+  });
+});
+
+app.use(express.static("public"));
+
+app.listen(PORT, () => {
+  console.log(`UDPA running at http://localhost:${PORT}`);
+});
