@@ -1,3 +1,19 @@
+import {
+  runAgent,
+  runPlanningAgent
+} from "./agent.mjs";
+import {
+  getStudentProfile,
+  getDegreeProgress,
+  getEligibleCourses,
+  getCourseAvailability
+} from "./agent-tools.mjs";
+import {
+  getPlan,
+  savePlan,
+  getEnrolments,
+  saveEnrolment
+} from "./db.mjs";
 import { recommend } from "./public/domain.js";
 import express from "express";
 import {
@@ -10,12 +26,7 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-let savedPlan = {
-  term: "Winter 2027",
-  codes: []
-};
 
-let enrolments = {};
 
 app.use(express.json());
 
@@ -25,8 +36,8 @@ app.get("/api/workspace", (req, res) => {
     completed,
     requirements,
     courses,
-    plan: savedPlan,
-    enrolments
+    plan: getPlan(),
+    enrolments: getEnrolments()
   });
 });
 
@@ -36,10 +47,11 @@ app.get("/api/student", (req, res) => {
 });
 
 app.put("/api/plans", (req, res) => {
-  savedPlan = req.body;
+  savePlan(req.body);
+
   res.json({
     message: "Plan saved",
-    plan: savedPlan
+    plan: req.body
   });
 });
 
@@ -58,26 +70,74 @@ app.post("/api/enrolments", (req, res) => {
     });
   }
 
-  enrolments[code] = action;
+  saveEnrolment(code, action);
 
   res.status(201).json({
     message: `${code} ${action}`,
-    enrolments
+    enrolments: getEnrolments()
   });
 });
 
-app.post("/api/assistant/plans", (req, res) => {
-  const preferences = req.body;
+app.post("/api/assistant/plans", async (req, res) => {
+  try {
+    const preferences = req.body;
 
-  const codes = recommend(
-    courses,
-    completed,
-    preferences
-  );
+    const result = await runPlanningAgent(preferences);
 
-  res.json({
-    codes
-  });
+    res.json({
+      codes: result.codes
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "The AI planning assistant could not generate a plan."
+    });
+  }
+});
+
+app.get("/api/tools/profile", (req, res) => {
+  res.json(getStudentProfile());
+});
+
+app.get("/api/tools/progress", (req, res) => {
+  res.json(getDegreeProgress());
+});
+
+app.get("/api/tools/eligible", (req, res) => {
+  const term = req.query.term || "Winter 2027";
+  res.json(getEligibleCourses(term));
+});
+
+app.get("/api/tools/availability/:code", (req, res) => {
+  const result = getCourseAvailability(req.params.code);
+
+  if (!result) {
+    return res.status(404).json({
+      message: "Course not found"
+    });
+  }
+
+  res.json(result);
+});
+
+app.get("/api/agent/test", async (req, res) => {
+  try {
+    const answer = await runAgent(
+      "Assess this student's degree progress and recommend a Winter 2027 course plan. Check eligibility and availability before recommending courses."
+    );
+
+    res.json({
+      answer
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
 });
 
 app.use(express.static("public"));
