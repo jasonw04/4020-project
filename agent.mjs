@@ -39,9 +39,10 @@ const tools = [
       type: "object",
       properties: {
         term: {
-          type: "string",
-          description: "Academic term, for example Winter 2027."
-        }
+  type: "string",
+  description:
+    "Academic planning term. For the current DORIS scenario use exactly: 2018-19 Semester 1."
+}
       },
       required: ["term"],
       additionalProperties: false
@@ -222,6 +223,107 @@ You are the agentic degree-planning assistant for UDPA.
 
 Use tool results as authoritative.
 Return only a valid plan using courses supported by the tool results.
+`,
+      input,
+      tools,
+      text: {
+        format
+      }
+    });
+  }
+
+  return JSON.parse(response.output_text);
+}
+export async function runEnrolmentAgent(plan) {
+  const input = [
+    {
+      role: "user",
+      content: `
+The student has approved this course plan:
+
+${JSON.stringify(plan)}
+
+For every course in the plan:
+1. Check the course's availability using the available tools.
+2. If seats are available, propose "enrolled".
+3. If no seats are available, propose "waitlisted".
+4. Do not include courses that are not in the approved plan.
+
+Do not perform any enrolment action yourself.
+Only propose the actions for student approval.
+`
+    }
+  ];
+
+  const format = {
+    type: "json_schema",
+    name: "enrolment_actions",
+    strict: true,
+    schema: {
+      type: "object",
+      properties: {
+        actions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              code: {
+                type: "string"
+              },
+              action: {
+                type: "string",
+                enum: ["enrolled", "waitlisted"]
+              }
+            },
+            required: ["code", "action"],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ["actions"],
+      additionalProperties: false
+    }
+  };
+
+  let response = await client.responses.create({
+    model: "gpt-6-luna",
+    instructions: `
+You are the enrolment assistant for UDPA.
+
+Use course availability tools instead of guessing.
+You may only PROPOSE enrolment or waitlist actions.
+The student must approve actions separately.
+`,
+    input,
+    tools,
+    text: {
+      format
+    }
+  });
+
+  while (response.output.some(item => item.type === "function_call")) {
+    input.push(...response.output);
+
+    for (const item of response.output) {
+      if (item.type !== "function_call") continue;
+
+      const args = JSON.parse(item.arguments);
+      const result = runTool(item.name, args);
+
+      input.push({
+        type: "function_call_output",
+        call_id: item.call_id,
+        output: JSON.stringify(result)
+      });
+    }
+
+    response = await client.responses.create({
+      model: "gpt-6-luna",
+      instructions: `
+Use the tool results as authoritative.
+
+Return proposed enrolment actions only.
+Do not claim any action has already occurred.
 `,
       input,
       tools,
