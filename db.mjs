@@ -21,7 +21,7 @@ export function getPlan() {
 
   if (!row) {
     return {
-      term: "Winter 2027",
+      term: "2018-19 Semester 1",
       codes: []
     };
   }
