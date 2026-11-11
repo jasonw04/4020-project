@@ -1,4 +1,10 @@
 import {
+  getDefaultScenario,
+  getSnapshotDegreeProgress,
+  getPlanningTermCourses,
+  getMajorRelevantPlanningCourses
+} from "./doris-repository.mjs";
+import {
   student,
   completed,
   requirements,
@@ -11,40 +17,133 @@ import {
 } from "./public/domain.js";
 
 export function getStudentProfile() {
-  return student;
-}
+  const scenario = getDefaultScenario();
 
-export function getDegreeProgress() {
   return {
-    student,
-    completedCredits: completed.reduce((sum, course) => sum + course.credits, 0),
-    requirements: audit(completed, requirements)
+    id: scenario.student_id,
+    education: scenario.education,
+    major: scenario.major,
+    enrollmentYear: scenario.enrollment_year,
+
+    source: "DORIS",
+    snapshot: {
+      academicYear: scenario.cutoff_academic_year,
+      semester: scenario.cutoff_semester
+    }
   };
 }
 
-export function getEligibleCourses(term) {
-  return courses
-    .filter(course => course.term === term)
-    .filter(course => {
-      const result = eligibility(course, completed);
+export function getDegreeProgress() {
+  const scenario = getDefaultScenario();
+  const progress = getSnapshotDegreeProgress();
 
-      return !result.completed && result.missing.length === 0;
-    });
+  return {
+    student: {
+      id: scenario.student_id,
+      major: scenario.major,
+      education: scenario.education
+    },
+
+    snapshot: {
+      academicYear: scenario.cutoff_academic_year,
+      semester: scenario.cutoff_semester
+    },
+
+    earnedCredits: progress.earnedCredits,
+    targetCredits: progress.targetCredits,
+    remainingCredits: progress.remainingCredits,
+
+    requirements: progress.areas,
+
+    source: "DORIS-backed historical snapshot"
+  };
+}
+
+const PLANNING_TERM = "2018-19 Semester 1";
+
+
+export function getEligibleCourses(term = PLANNING_TERM) {
+  if (term !== PLANNING_TERM) {
+    return [];
+  }
+
+  return getMajorRelevantPlanningCourses()
+    .map(course => ({
+      code: course.course_id,
+      title: course.course_name,
+
+      term: PLANNING_TERM,
+
+      requirement:
+        course.requirementId,
+
+      credits:
+        course.credits,
+
+      seats:
+        course.simulated_remaining_seats,
+
+      capacity:
+        course.simulated_capacity,
+
+      days:
+        course.simulated_days,
+
+      time:
+        course.simulated_time,
+
+      available:
+        course.available,
+
+      waitlistAvailable:
+        course.waitlistAvailable,
+
+      peerEvidence: {
+        count:
+          course.cohortPeerCount,
+
+        rate:
+          course.cohortPeerRate,
+
+        relevance:
+          course.relevanceTier
+      },
+
+      source:
+        "DORIS same-cohort candidate + simulated operational data"
+    }));
 }
 
 export function getCourseAvailability(code) {
-  const course = courses.find(course => course.code === code);
+  const course =
+    getPlanningTermCourses().find(
+      course =>
+        course.course_id === String(code)
+    );
 
   if (!course) {
     return null;
   }
 
   return {
-    code: course.code,
-    title: course.title,
-    seats: course.seats,
-    capacity: course.capacity,
-    available: course.seats > 0,
-    waitlistAvailable: course.seats === 0
+    code: course.course_id,
+    title: course.course_name,
+
+    term: PLANNING_TERM,
+
+    seats:
+      course.simulated_remaining_seats,
+
+    capacity:
+      course.simulated_capacity,
+
+    available:
+      course.simulated_remaining_seats > 0,
+
+    waitlistAvailable:
+      course.simulated_remaining_seats === 0,
+
+    source:
+      "DORIS-observed offering + UDPA-simulated availability"
   };
 }
