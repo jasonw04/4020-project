@@ -12,5 +12,10 @@ export const api={
   load:()=>request('/workspace'),
   savePlan:plan=>request('/plans',{method:'PUT',body:JSON.stringify(plan)}),
   enrol:(code,action)=>request('/enrolments',{method:'POST',body:JSON.stringify({code,action})}),
-  assistant:preferences=>request('/assistant/plans',{method:'POST',body:JSON.stringify(preferences)})
+  assistant:preferences=>request('/assistant/plans',{method:'POST',body:JSON.stringify(preferences)}),
+  enrolmentActions: plan =>
+  request('/assistant/enrolment-actions', {
+    method: 'POST',
+    body: JSON.stringify(plan)
+  }),
 };
